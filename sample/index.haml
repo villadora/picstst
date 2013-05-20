@@ -1,0 +1,28 @@
+- require 'rest-client'
+- require 'json'
+!!!
+%html
+    %head
+        %title Pic Status for Jenkin&Sonar
+    %body
+        %div
+            %h3 Sonar Status
+            - rsp = RestClient.get "http://sonar.dianpingoa.com/api/resources", {:params => {:format=>'json'}}
+            - json = JSON.parse(rsp.to_str)
+            - json.first(20).each do |item| 
+                %span=item['key']
+                %img{:src=> "http://localhost:4567/#{item['key']}/coverage.png"}
+                %br
+                
+        %div
+            %h3 Jenkins Status
+            - rsp = RestClient.get "http://alpha.ci.dp/api/json"
+            - json = JSON.parse(rsp.to_str)['jobs']
+            - json.first(20).each do |item| 
+                %span=item['name']
+                %img{:src=> "http://localhost:4567/#{item['name']}/alpha/build.png"}
+                %br
+
+
+            
+
