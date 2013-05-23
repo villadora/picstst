@@ -14,8 +14,12 @@ class MyAppTest < Test::Unit::TestCase
         assert_equal  "this is a image service to collecte projects' status", last_response.body
     end
 
-    def test_coverage
-        get '/com.dianping:map/coverage.png'
+    def test_sonar
+        get '/sonar/com.dianping:map/coverage.png'
+    end
+
+    def test_jenkins
+        get '/jenkins/beta/AB-Test-jar.png'
     end
     
 end

@@ -1,34 +1,18 @@
 require 'rest-client'
+require 'jsonpath'
+
 require 'json'
 
 
+
+
 module InfoQuery
-    class BaseInfo
-        def info
-        end
-    end
 
-    class SonarInfo < BaseInfo
+    class JenkinsInfo
+        include BaseInfo
+        
         attr_reader :url
         
-        def initialize(url)
-            @url = url
-            @format = 'json'
-        end
-        
-        def info(resource, metric='coverage')
-            rsp = RestClient.get "#{@url}/api/resources", {:params => {:resource=>resource,:metrics=>metric,:format=>@format}}
-            msr = JSON.parse(rsp.to_str)[0]["msr"][0]
-            val = msr['val']
-            frmt_val = msr['frmt_val']
-
-            {:label=>metric, :frmt_val=>frmt_val, :val=>val,
-                :level=>(val > 80)? :good : ((val > 35) ? :ok : :bad)}
-        end
-    end
-
-    class JenkinsInfo < BaseInfo
-        attr_reader :url
         COLOR_STATUS_MAPPING = {
             /^blue$/              => 'success',
             /^red$/               => 'failure',
@@ -62,10 +46,10 @@ module InfoQuery
         end
 
         private
-            def get_status_to(color)
-                result_color_key = COLOR_STATUS_MAPPING.keys.find { | color_regex | color_regex.match(color)}
-                raise "This color '#{color}' and its corresponding status hasn't been added to library, pls contact author." if result_color_key.nil?
-                COLOR_STATUS_MAPPING[result_color_key]
-            end
+        def get_status_to(color)
+            result_color_key = COLOR_STATUS_MAPPING.keys.find { | color_regex | color_regex.match(color)}
+            raise "This color '#{color}' and its corresponding status hasn't been added to library, pls contact author." if result_color_key.nil?
+            COLOR_STATUS_MAPPING[result_color_key]
         end
     end
+end

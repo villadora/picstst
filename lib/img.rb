@@ -1,5 +1,5 @@
 require 'RMagick'
-
+require './lib/color'
 
 include Magick
 
@@ -11,38 +11,35 @@ module Img
         def initialize(label, value)
             @label = label
             @value = value
-
-            @imgList = ImageList.new
-
-            @imgList << GradientImage.new(@label).get_image
-            @imgList << GradientImage.new(@value).get_image
+            puts @label, @value
         end
         
-        def get_image
+        def get_image(format='png')
+            imgList = ImageList.new
+            imgList << GradientImage.new(@label).get_image(format)
+            imgList << GradientImage.new(@value).get_image(format)
+
+            # Calculate height
             maxHeight = 0
-            @imgList.each do |img|
+            imgList.each do |img|
                 maxHeight = img.rows if img.rows > maxHeight
             end
 
-            @imgList.map! do |img|
+            # Rebase the images' height
+            imgList.map! do |img|
                 img.resize(img.columns, maxHeight)
             end
             
-            img = @imgList.append false
-            img.format = 'png'
-            img
+            # Merge horizontal
+            img = imgList.append false
+            img.format = format
+
+            return img
         end
     end
 
     class GradientImage
-        attr_accessor :text, :width, :height, :gradient, :color, :font_size, :padding
-
-        GRADIENTS = {:grey => ['#CFCFCF','#5E5E5E'],
-            :green => ['#00FF26','#00AB1A'],
-            :red => ['#FF1414','#B00000'],
-            :orange => ['#FFAB36', '#E38400']
-        }
-        
+        attr_accessor :text, :color, :font_size, :padding, :bg_rate
 
         def initialize args
             # If args is hash
@@ -52,41 +49,36 @@ module Img
                 end
             end
 
-            @gradient = @gradient || :grey
             @font_size = @font_size || 12
-            @color = @color || 'white'
+            @color = @color || '#4a4a4a'
             @padding = @padding || 4
+            @bg_rate= @bg_rate || 1.2
         end
 
 
-        def get_image
+        def get_image(format='png')
+            # Draw text
             draw = Magick::Draw.new
-            draw.font_family = "helvetica"
+            draw.font_family = "verdana"
             draw.font_weight = 700
             draw.pointsize = @font_size
             draw.gravity = Magick::CenterGravity
-            draw.fill = @color
+            draw.fill = Color.contrast @color
 
+            # Calculate width&height
             metrics = draw.get_type_metrics(@text)
-            box_width = metrics.width # this one is ok by default
-            box_height = (metrics.bounds.y2 - metrics.bounds.y1).round # this is the actual height
+            width = metrics.width + 2*@padding # this one is ok by default
+            height = (metrics.bounds.y2 - metrics.bounds.y1).round + 2*@padding # this is the actual height
 
-            width = @width || box_width + 2*@padding
-            height = @height || box_height + 2*@padding
-            gradient
-            
-            unless @gradient.nil?
-                gradient = GradientFill.new(0,0,width,0, @gradient[0], @gradient[1]) if @gradient.is_a?(Array)
-                gradient = GradientFill.new(0,0,width,0, GRADIENTS[@gradient][0], GRADIENTS[@gradient][1]) if GRADIENTS.has_key? @gradient
-            end
-            
-            img = Image.new(@width || box_width+2*@padding, @height ||  box_height+2*@padding, gradient)
-            img.format = 'png'
+            # Draw background
+            gradient = GradientFill.new(0,0,width,0, Color.luminance(@color, @bg_rate), @color)
+
+            img = Image.new(width, height, gradient)
+            img.format = format
             
             # draw text
-            draw.annotate(img, 0,0,0,0, @text)
-            
-            img
+            draw.annotate(img, width, height,0, 0, @text)
+            return img
         end
     end
 end
